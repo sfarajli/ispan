@@ -38,15 +38,14 @@ def preprocess(raw_line):
     tmp = with_newlines.split('\n')
     last_line = tmp.pop().split()
     tmp.append(' '.join(last_line[:2]))
-    tmp.append('')
 
-    header = ' '.join(tmp)
+    header = '\n'.join(tmp)
     body = ' '.join(last_line[2:])
 
     return header, body
 
 def parse_mail(header, body):
-    msg = Parser().parsestr(header, headersonly=True)
+    msg = Parser().parsestr(header)
     ret = dict(msg)
     ret ['Body'] = body
     return ret
