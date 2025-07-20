@@ -48,6 +48,7 @@ def parse_mail(header, body):
     msg = Parser().parsestr(header)
     ret = dict(msg)
     ret ['Body'] = body
+    ret = {k.lower(): v for k, v in ret.items()}
     return ret
 
 def train():
