@@ -35,17 +35,20 @@ def preprocess(raw_line):
     with_newlines = HEADER_REGEX.sub(r'\n\1:', trimmed).strip()
 
     # Parse the last line explicitly so that body separates from header
-    lines = with_newlines.split('\n')
-    last_line = lines.pop().split()
-    lines.append(' '.join(last_line[:2]))
-    lines.append('')
-    lines.append(' '.join(last_line[2:]))
+    tmp = with_newlines.split('\n')
+    last_line = tmp.pop().split()
+    tmp.append(' '.join(last_line[:2]))
+    tmp.append('')
 
-    return '\n'.join(lines)
+    header = ' '.join(tmp)
+    body = ' '.join(last_line[2:])
 
-def parse_mail(mail):
-    msg = Parser().parsestr(mail)
+    return header, body
+
+def parse_mail(header, body):
+    msg = Parser().parsestr(header, headersonly=True)
     ret = dict(msg)
+    ret ['Body'] = body
     return ret
 
 def train():
