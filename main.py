@@ -4,56 +4,49 @@ from email.parser import Parser
 from email.parser import Parser
 from email import message_from_string
 from email.policy import default
+import re
 
-def preprocess(raw):
-    # TODO: separate the header and body and then parse the header
-    words = raw.split()
-    result = []
-    current_key = None
-    current_value = []
+KNOWN_HEADERS = [
+    # Standard
+    'From', 'To', 'Cc', 'Bcc', 'Subject', 'Date', 'Message-ID', 'In-Reply-To',
+    'References', 'Reply-To', 'Sender', 'Return-Path', 'Delivered-To',
+    'Received', 'MIME-Version', 'Content-Type', 'Content-Transfer-Encoding',
+    'Content-Disposition', 'Content-Language', 'Content-ID',
+    # Extended
+    'X-Mailer', 'X-Originating-IP', 'X-Spam-Status', 'X-Spam-Score',
+    'X-Spam-Flag', 'X-Priority', 'X-UIDL', 'List-Id', 'List-Unsubscribe',
+    'Archived-At', 'Auto-Submitted'
+]
 
-    i = 0
-    while i < len(words):
-        word = words[i]
-        if ':' in word:
-            parts = word.split(':', 1)
-            key = parts[0]
-            val = parts[1].strip()
+HEADER_REGEX = re.compile(r'\b(' + '|'.join(map(re.escape, KNOWN_HEADERS)) + r')\b\s*:', re.IGNORECASE)
 
-            # If we already have a key, flush it with its value
-            if current_key is not None:
-                if current_value:
-                    result.append(f"{current_key}: {' '.join(current_value)}")
-                else:
-                    # If value is empty, treat this key:value as the value
-                    current_value.append(f"{key}: {val}")
-                    i += 1
-                    continue  # Don't treat the current as new key
+def preprocess(raw_line):
+    raw_line = raw_line.strip()
 
-            current_key = key
-            current_value = [val] if val else []
-        else:
-            current_value.append(word)
+    # Find where the first known header starts
+    match = HEADER_REGEX.search(raw_line)
+    if not match:
+        return ''
 
-        i += 1
+    # Trim everything before the first header
+    trimmed = raw_line[match.start():]
 
-    if current_key is not None and current_value:
-        result.append(f"{current_key}: {' '.join(current_value)}")
+    # Add newline before each header
+    with_newlines = HEADER_REGEX.sub(r'\n\1:', trimmed).strip()
 
-    return '\n'.join(result)
+    # Parse the last line explicitly so that body separates from header
+    lines = with_newlines.split('\n')
+    last_line = lines.pop().split()
+    lines.append(' '.join(last_line[:2]))
+    lines.append('')
+    lines.append(' '.join(last_line[2:]))
+
+    return '\n'.join(lines)
 
 def parse_mail(mail):
     msg = Parser().parsestr(mail)
-
-    mail = {
-            "from": msg['From'],
-            "to": msg['to'],
-            "subject": msg['Subject'],
-            "date": msg['Date'],
-            "body": msg.get_payload()
-    }
-
-    return mail
+    ret = dict(msg)
+    return ret
 
 def train():
     # Train the model
@@ -65,7 +58,6 @@ def predict():
 
 def main():
     pass
-
 
 if __name__ == "__main__":
     main()
